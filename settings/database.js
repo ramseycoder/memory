@@ -8,17 +8,18 @@ const connection = async () =>{
             useUnifiedTopology: true,
         });
         console.log(('connected'));
-       /* connect.db.collection('memory_resultatparlevel',(err,collection)=>{
-            collection.deleteMany({nbre_tentative:NaN}) .then(resu => {
+     /*  connect.db.collection('memory_resultatparlevel',(err,collection)=>{
+            collection.deleteMany() .then(resu => {
                 console.log(resu)
             }).catch(err => {
                 console.log(err);
             })
         }); */
-        connect.db.collection('memory_resultatparlevel',(err,collection)=>{
-            collection.find().toArray((err,data)=> {
-                console.log(data)
-            });
+
+        connect.db.collection('memory_levelgame',(err,collection)=>{
+            collection.find({}) .toArray((err,resu) => {
+                console.log(resu)
+            })
         });
     }catch(e){
         console.log("err"+e);

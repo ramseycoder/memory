@@ -107,12 +107,13 @@ memory.on('connection',async (socket)=>{
                 user_id: socket.handshake.session.game.id,
                 game_id:socket.handshake.session.game.game_id,
                 level: niveau,
-                nbre_tentative: 1
+                nbre_tentative: 1,
+                is_validate: true
             };
         }else{
             data = tentatives;
-            data.id = d+1;
             data.nbre_tentative += 1;
+            data.is_validate = true
         }
         console.log(data);
         const res = await userQueries.passLevel(data);
@@ -125,22 +126,18 @@ memory.on('connection',async (socket)=>{
 
     socket.on('setTentative',async (niveau)=>{
        let d =  await userQueries.getModelsLength('memory_resultatparlevel');
-        const data = {
-            level: niveau-1,
-            game: socket.handshake.session.game.game_id,
-        };
         if(tentatives.user_id == undefined){
             tentatives.id = d+1;
             tentatives.user_id = socket.handshake.session.game.id;
             tentatives.game_id = socket.handshake.session.game.game_id;
             tentatives.level = niveau;
             tentatives.nbre_tentative = 1;
+            tentatives.is_validate = false;
         }else{
-            tentatives.id = d+1;
             tentatives.nbre_tentative += 1;
         }
         console.log(tentatives);
-        const res = await gameQueries.getLevel(data);
+        const res = await userQueries.setNumberTentatives(tentatives);
         if(res.level != null){
             socket.emit('setTentative',res.level);
         }

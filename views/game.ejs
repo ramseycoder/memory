@@ -53,7 +53,8 @@
     <!-- header -->
     <div class="header">
         <p class="time">Time: <span style="font-weight: bolder" class="Time"></span></p>
-    </div><br>
+    </div><br><br>
+    <div id="ttr"></div>
     <div class="cont">
     </div>
     <button class="validate" style="display: none"></button>
@@ -73,6 +74,11 @@
             comptClick = false;
             DATAS = data;
         };
+
+        if(<%= gardeSession %>){
+            socket.emit('sessionkeep');
+        }
+
         const setBlockWhite = ()=>{
             $('.child').each(function(){
                 $(this).css('background-color','white');
@@ -116,7 +122,7 @@
                                 all[tab[i]].style.backgroundColor = 'white';
                                 comptClick = true;
                             }
-                            aff()
+                            aff(data)
                         }
                     }, data.temps_transition);
                 }
@@ -124,7 +130,11 @@
         };
 
 
-        const reproduceEventByUser = () =>{
+        const reproduceEventByUser = (data) =>{
+            createProgressbar('ttr',data.temps_reponse,()=>{
+                comptClick = false;
+                document.querySelector('.validate').click();
+            });
             for (let i = 0; i < all.length; i++) {
                 all[i].addEventListener('click', () => {
                     if (comptClick) {
@@ -158,7 +168,7 @@
             },500);
         };
 
-        const aff = () => {
+        const aff = (donne) => {
             go.style.display = "block";
             comptScale = 0;
             const int2 = setInterval(()=>{
@@ -173,7 +183,7 @@
                     go.style.display = "none";
                     go.style.opacity = "1";
                     go.style.transform =  "scale(0)";
-                    reproduceEventByUser();
+                    reproduceEventByUser(donne);
                 }
             },20);
         };
@@ -260,11 +270,8 @@
                     awaitime--;
                     if (awaitime === 0) {
                         clearInterval(Await);
-                        if(DATAS.niveau <= 18){
                             afficheNiveau(DATAS.niveau+1);
                             socket.emit('passlevel',DATAS.niveau)
-                        }else{
-                            alert('yes')
                         }
                     }
                 }, 500);
@@ -284,8 +291,13 @@
             }
             return false;
         });
-
-
+        const button = document.querySelector('.welcome button');
+        button.addEventListener('click',()=>{
+            document.querySelector('.welcome').style.display = "none";
+            document.querySelector('.ombre').style.display = "none";
+            afficheNiveau(1);
+            socket.emit('begin_game_memory')
+        });
 
         const set = (string) =>{
             const numberOfCase = eval(string);
@@ -312,24 +324,12 @@
             }
         };
 
-        const button = document.querySelector('.welcome button');
-        button.addEventListener('click',()=>{
-            document.querySelector('.welcome').style.display = "none";
-            document.querySelector('.ombre').style.display = "none";
-            afficheNiveau(1);
-            socket.emit('begin_game_memory')
-        });
-
-        if(<%= gardeSession %>){
-            socket.emit('sessionkeep');
-        }
-        socket.on('gameInstance',(duree,data)=>{
-            afficheNiveau(data.niveau);
+        socket.on('begin_game_memory',(duree,data)=>{
             getTime(duree);
             Game(data)
         });
-
-        socket.on('begin_game_memory',(duree,data)=>{
+        socket.on('gameInstance',(duree,data)=>{
+            afficheNiveau(data.niveau);
             getTime(duree);
             Game(data)
         });
@@ -338,9 +338,34 @@
             Game(data);
         });
 
+        function createProgressbar(id, duration, callback) {
+            // We select the div that we want to turn into a progressbar
+            var progressbar = document.getElementById(id);
+            progressbar.className = 'progressbar';
+
+            // We create the div that changes width to show progress
+            var progressbarinner = document.createElement('div');
+            progressbarinner.className = 'inner';
+
+            // Now we set the animation parameters
+            progressbarinner.style.animationDuration = duration;
+
+            // Eventually couple a callback
+            if (typeof(callback) === 'function') {
+                progressbarinner.addEventListener('animationend', callback);
+            }
+
+            // Append the progressbar to the main progressbardiv
+            progressbar.appendChild(progressbarinner);
+
+            // When everything is set up we start the animation
+            progressbarinner.style.animationPlayState = 'running';
+        }
+
         socket.on('setTentative',(data)=>{
             Game(data);
         });
+
     </script>
     <script>
         document.querySelector('.welcome').style.opacity = "1";

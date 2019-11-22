@@ -50,10 +50,12 @@ router.route('/nan_games/games/:id')
                 game_id: req.session.game.game_id
             });
             console.log(timegame.time -  Math.round(new Date().getTime() / 1000));
-            if (timegame.time - Math.round(new Date().getTime() / 1000) == 0){
-                res.redirect('/nan_games/games');
-            }else if(timegame.time > 0){
-                res.render('game', {user:req.session.game,game: resu.game,instance:true,gardeSession:true});
+            if(timegame.time > 0){
+                if(timegame.time - Math.round(new Date().getTime() / 1000) <= 0){
+                    res.redirect('/nan_games/games');
+                }else{
+                    res.render('game', {user:req.session.game,game: resu.game,instance:true,gardeSession:true});
+                }
             }else{
                 res.render('game', {user:req.session.game,game: resu.game,instance:false,gardeSession:false});
             }

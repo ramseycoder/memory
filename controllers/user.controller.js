@@ -45,7 +45,41 @@ exports.userQueries = class {
 
     static setNumberTentatives(data) {
         return new Promise(async next => {
-            const user = await User.findById(data.user_id);
+            data.date_add = new Date();
+            data.date_upd = new Date();
+            data.status = true;
+            await mongoose.connection.db.collection('memory_resultatparlevel',(err,collection)=>{
+                collection.findOne({user_id:data.user_id,game_id:data.game_id,level:data.level}).then(succ => {
+                    if(succ == null){
+                        collection.insertOne(data)
+                            .then(success => {
+                                mongoose.connection.db.collection('memory_levelgame',(err,collection)=>{
+                                    collection.find().toArray((err,res)=>{
+                                        next({etat:true, level:res[data.level-1]})
+                                    });
+                                })
+                            })
+                            .catch(err => {
+                                next({etat:false,err:err});
+                            })
+                    }else{
+                        collection.updateOne({user_id:data.user_id,game_id:data.game_id,level:data.level},
+                            {$set:{nbre_tentative: data.nbre_tentative}},
+                            {upsert:true})
+                            .then( good => {
+                                mongoose.connection.db.collection('memory_levelgame',(err,collection)=>{
+                                    collection.find().toArray((err,res)=>{
+                                        next({etat:true, level:res[data.level-1]})
+                                    });
+                                })
+                            })
+                            .catch(err => {
+                                next({etat:true, err:err});
+                            })
+                    }
+                })
+            });
+            /*const user = await User.findById(data.user_id);
             const index = await findGameIndex(user.games, data.game_id);
             if (user.games[index].levels[data.niveau] !== undefined) {
                 user.games[index].levels[data.niveau].nbTentatives += 1
@@ -57,7 +91,7 @@ exports.userQueries = class {
                 next({etat: true, game: game.levels[data.niveau]});
             }).catch(e => {
                 next({etat: false, err: e});
-            });
+            }); */
         });
     }
 
@@ -67,6 +101,39 @@ exports.userQueries = class {
             data.date_upd = new Date();
             data.status = true;
             await mongoose.connection.db.collection('memory_resultatparlevel',(err,collection)=>{
+                collection.findOne({user_id:data.user_id,game_id:data.game_id,level:data.level}).then(succ => {
+                    if(succ == null){
+                        collection.insertOne(data)
+                            .then(success => {
+                                mongoose.connection.db.collection('memory_levelgame',(err,collection)=>{
+                                    collection.find().toArray((err,res)=>{
+                                        next({etat:true, level:res[data.level]})
+                                    });
+                                })
+                            })
+                            .catch(err => {
+                                next({etat:false,err:err});
+                            })
+                    }else{
+                        collection.updateOne({user_id:data.user_id,game_id:data.game_id,level:data.level},
+                            {$set:{nbre_tentative: data.nbre_tentative,is_validate:data.is_validate}},
+                            {upsert:true})
+                            .then( good => {
+                                mongoose.connection.db.collection('memory_levelgame',(err,collection)=>{
+                                    collection.find().toArray((err,res)=>{
+                                        next({etat:true, level:res[data.level]})
+                                    });
+                                })
+                            })
+                            .catch(err => {
+                                next({etat:true, err:err});
+                            })
+                    }
+                })
+            });
+
+
+        /*    await mongoose.connection.db.collection('memory_resultatparlevel',(err,collection)=>{
                 collection.insert(data).then( succ => {
                     mongoose.connection.db.collection('memory_levelgame',(err,collection)=> {
                         collection.find().toArray((err,result)=>{
@@ -76,7 +143,7 @@ exports.userQueries = class {
                 }).catch(err => {
                     next({etat:false,err:err});
                 })
-            });
+            }); */
         });
     }
 
