@@ -66,7 +66,7 @@
         $(window).on('load',function(){
             $('#preloader').fadeOut(400);
         });
-        let verifTab,tab,all,comptClick,DATAS, go = document.querySelector('#game .go'),comptScale;
+        let verifTab,tab,all,comptClick,DATAS, go = document.querySelector('#game .go'),comptScale,endGame = false;
         const setData = (data) => {
             verifTab = [];
             tab = [];
@@ -131,7 +131,8 @@
 
 
         const reproduceEventByUser = (data) =>{
-            createProgressbar('ttr',data.temps_reponse,()=>{
+            createProgressbar('ttr',data.temps_reponse+'s',()=>{
+                document.querySelector('#ttr').removeChild(document.querySelector('.inner'));
                 comptClick = false;
                 document.querySelector('.validate').click();
             });
@@ -150,22 +151,24 @@
         };
 
         const Game = (DATAS) => {
-            setData(DATAS);
-            let c = 2;
-            const int = setInterval(()=>{
-                c--;
-                if(c === 1){
-                    setBlock(DATAS);
-                }
-                if(c === 0){
-                    clearInterval(int);
-                    $('#preloader').fadeOut(400);
-                    let compt = DATAS.case_visible;
-                    getRandomCase(compt);
-                    compt = 0;
-                    setRandomCase(compt,DATAS);
-                }
-            },500);
+            if(!endGame){
+                setData(DATAS);
+                let c = 2;
+                const int = setInterval(()=>{
+                    c--;
+                    if(c === 1){
+                        setBlock(DATAS);
+                    }
+                    if(c === 0){
+                        clearInterval(int);
+                        $('#preloader').fadeOut(400);
+                        let compt = DATAS.case_visible;
+                        getRandomCase(compt);
+                        compt = 0;
+                        setRandomCase(compt,DATAS);
+                    }
+                },500);
+            }
         };
 
         const aff = (donne) => {
@@ -220,74 +223,85 @@
             Time.textContent = time;
             console.log(Time.textContent);
             let hour = parseInt(timeTab[0]),min = parseInt(timeTab[1]),sec = parseInt(timeTab[2]);
-            if(hour > 0){
                 const decompt = setInterval(()=>{
                     sec--;
-                    if(sec === -1){
-                        sec = 59;
-                        min--
-                        if(min === -1){
-                            min = 59;
-                            hour--
-                            if(hour === 0){
-                                clearInterval(decompt);
+                    if(hour > 0){
+                        if(sec === -1){
+                            sec = 59;
+                            min--
+                            if(min === -1){
+                                min = 59;
+                                hour--
                             }
+                        }
+                    }else if(min > 0){
+                        if(sec === -1){
+                            sec = 59;
+                            min--
+                        } 
+                    }else{
+                        if( sec === O){
+                            clearInterval(decompt);
+                            endGame = true;
+                            $('#preloader').fadeIn(300);
+                            socket.emit('endGame')
                         }
                     }
                     Time.textContent = hour+":"+min+":"+sec;
                 },1000);
-            }else if(min > 0){
-                const decompt = setInterval(()=>{
-                    sec--;
-                    if(sec === -1){
-                        sec = 59;
-                        min--
-                        if(min === 0){
-                            clearInterval(decompt);
-                        }
-                    }
-                    Time.textContent = hour+":"+min+":"+sec
-                },1000);
-            }else{
-                const decompt = setInterval(()=>{
-                    sec--;
-                    if(sec === 0){
-                        clearInterval(decompt);
-                    }
-                    Time.textContent = hour+":"+min+":"+sec
-                },1000);
-            }
         };
 
         document.querySelector('.validate').addEventListener('click',()=>{
-            console.log('je clique');
-            if (ifIsMatch(verifTab, tab, DATAS.ordre)) {
-                for (let i = 0; i < tab.length; i++) {
-                    all[tab[i]].style.backgroundColor = 'lime';
-                }
-                let awaitime = 3;
-                let Await = setInterval(() => {
-                    awaitime--;
-                    if (awaitime === 0) {
-                        clearInterval(Await);
-                            afficheNiveau(DATAS.niveau+1);
-                            socket.emit('passlevel',DATAS.niveau)
+            if(!endGame){
+                console.log('je clique');
+                if(verifTab.length === 0){
+                    afficheNiveau(DATAS.niveau);
+                    socket.emit('setTentative',DATAS.niveau)
+                }else if(verifTab.length > 0 && verifTab.length < tab.length){
+                    for (let i = 0; i < verifTab.length; i++) {
+                        all[verifTab[i]].style.backgroundColor = 'red';
+                    }
+                    let awaitime = 3;
+                    let Await = setInterval(() => {
+                        awaitime--;
+                        console.log('cool');
+                        if (awaitime === 0) {
+                            clearInterval(Await);
+                            afficheNiveau(DATAS.niveau);
+                            socket.emit('setTentative',DATAS.niveau)
                         }
+                    }, 200);
+                }else if (ifIsMatch(verifTab, tab, DATAS.ordre)) {
+                        document.querySelector('.inner').style.animation = "none";
+                        document.querySelector('#ttr').removeChild(document.querySelector('.inner'));
+                        for (let i = 0; i < tab.length; i++) {
+                            all[tab[i]].style.backgroundColor = 'lime';
+                        }
+                        let awaitime = 3;
+                        let Await = setInterval(() => {
+                            awaitime--;
+                            if (awaitime === 0) {
+                                clearInterval(Await);
+                                    afficheNiveau(DATAS.niveau+1);
+                                    socket.emit('passlevel',DATAS.niveau)
+                                }
+                            }, 200);
+                }else{
+                    document.querySelector('.inner').style.animation = "none";
+                    document.querySelector('#ttr').removeChild(document.querySelector('.inner'));
+                    for (let i = 0; i < tab.length; i++) {
+                        all[verifTab[i]].style.backgroundColor = 'red';
                     }
-                }, 500);
-            } else {
-                for (let i = 0; i < tab.length; i++) {
-                    all[verifTab[i]].style.backgroundColor = 'red';
+                    let awaitime = 3;
+                    let Await = setInterval(() => {
+                        awaitime--;
+                        if (awaitime === 0) {
+                            clearInterval(Await);
+                            afficheNiveau(DATAS.niveau);
+                            socket.emit('setTentative',DATAS.niveau)
+                        }
+                    }, 200);
                 }
-                let awaitime = 3;
-                let Await = setInterval(() => {
-                    awaitime--;
-                    if (awaitime === 0) {
-                        clearInterval(Await);
-                        afficheNiveau(DATAS.niveau);
-                        socket.emit('setTentative',DATAS.niveau)
-                    }
-                }, 500);
             }
             return false;
         });
@@ -317,8 +331,8 @@
                 width = 70;
                 height = 70;
             }
-            $('.cont').css('width',width * firstNumber+10+'px');
-            $('.cont').css('height',height * secondNumber +10+'px');
+            $('.cont').css('width',width * firstNumber+30+'px');
+            $('.cont').css('height',height * secondNumber +30+'px');
             for(let i = 0; i < numberOfCase; i++){
                 $('.cont').html($('.cont').html()+`<div class="child" style="width:${width}px;height:${height}px"></div>`);
             }
@@ -340,6 +354,7 @@
 
         function createProgressbar(id, duration, callback) {
             // We select the div that we want to turn into a progressbar
+            console.log(duration);
             var progressbar = document.getElementById(id);
             progressbar.className = 'progressbar';
 
@@ -365,6 +380,11 @@
         socket.on('setTentative',(data)=>{
             Game(data);
         });
+
+        socket.on('endGame',(data)=>{
+            $('#preloader').fadeOut(300);
+            alert(data.a_valide);
+        })
 
     </script>
     <script>

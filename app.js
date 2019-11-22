@@ -142,6 +142,20 @@ memory.on('connection',async (socket)=>{
             socket.emit('setTentative',res.level);
         }
     });
+
+    socket.on('endGame',async ()=>{
+         const data = {
+             id: await userQueries.getModelsLength('memory_resultatfinalgame'),
+             user_id: socket.handshake.session.game.id,
+             game_id: socket.handshake.session.game.game_id
+         }
+         console.log(data);
+         const end = await userQueries.endGame(data);
+         if(end.resultat != null){
+             console.log(end.resultat);
+             socket.emit('endGame',end.resultat);
+         }
+    });
 });
 
 const convertSecondes = (secondes)=>{

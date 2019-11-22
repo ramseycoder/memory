@@ -8,15 +8,7 @@ const connection = async () =>{
             useUnifiedTopology: true,
         });
         console.log(('connected'));
-     /*  connect.db.collection('memory_resultatparlevel',(err,collection)=>{
-            collection.deleteMany() .then(resu => {
-                console.log(resu)
-            }).catch(err => {
-                console.log(err);
-            })
-        }); */
-
-        connect.db.collection('memory_levelgame',(err,collection)=>{
+        connect.db.collection('memory_resultatfinalgame',(err,collection)=>{
             collection.find({}) .toArray((err,resu) => {
                 console.log(resu)
             })

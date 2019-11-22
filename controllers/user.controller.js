@@ -4,20 +4,6 @@ const mongoose = require('mongoose');
 
 exports.userQueries = class {
 
-    static setUser(data) {
-        return new Promise(async next => {
-            const user = await new User({
-                name: data.name,
-                password: data.password
-            });
-            user.save().then(user => {
-                next({etat: true, user: user});
-            }).catch(e => {
-                next({etat: false, err: e});
-            });
-        });
-    }
-
     static getUser(data) {
         return new Promise(async next => {
             await mongoose.connection.db.collection('memory_usergame', (err, collect) => {
@@ -29,16 +15,6 @@ exports.userQueries = class {
                 }).catch(err => {
                     next({etat: false, err: err});
                 });
-            })
-        });
-    }
-
-    static getAllUser() {
-        return new Promise(async next => {
-            await mongoose.connection.db.collection('auth_user', (err, collect) => {
-                collect.find().toArray((err, data) => {
-                    next({etat: true, user: data});
-                })
             })
         });
     }
@@ -64,7 +40,7 @@ exports.userQueries = class {
                             })
                     }else{
                         collection.updateOne({user_id:data.user_id,game_id:data.game_id,level:data.level},
-                            {$set:{nbre_tentative: data.nbre_tentative}},
+                            {$set:{nbre_tentative: succ.nbre_tentative+1}},
                             {upsert:true})
                             .then( good => {
                                 mongoose.connection.db.collection('memory_levelgame',(err,collection)=>{
@@ -79,19 +55,6 @@ exports.userQueries = class {
                     }
                 })
             });
-            /*const user = await User.findById(data.user_id);
-            const index = await findGameIndex(user.games, data.game_id);
-            if (user.games[index].levels[data.niveau] !== undefined) {
-                user.games[index].levels[data.niveau].nbTentatives += 1
-            } else {
-                user.games[index].levels.push({niveau: data.niveau + 1, nbTentatives: 1, isValidate: false});
-            }
-            user.save().then(async user => {
-                const game = await Game.findById(data.game_id);
-                next({etat: true, game: game.levels[data.niveau]});
-            }).catch(e => {
-                next({etat: false, err: e});
-            }); */
         });
     }
 
@@ -116,7 +79,7 @@ exports.userQueries = class {
                             })
                     }else{
                         collection.updateOne({user_id:data.user_id,game_id:data.game_id,level:data.level},
-                            {$set:{nbre_tentative: data.nbre_tentative,is_validate:data.is_validate}},
+                            {$set:{nbre_tentative: succ.nbre_tentative+1,is_validate:true}},
                             {upsert:true})
                             .then( good => {
                                 mongoose.connection.db.collection('memory_levelgame',(err,collection)=>{
@@ -131,19 +94,6 @@ exports.userQueries = class {
                     }
                 })
             });
-
-
-        /*    await mongoose.connection.db.collection('memory_resultatparlevel',(err,collection)=>{
-                collection.insert(data).then( succ => {
-                    mongoose.connection.db.collection('memory_levelgame',(err,collection)=> {
-                        collection.find().toArray((err,result)=>{
-                            next({etat: true, level: result[data.level]})
-                        });
-                    })
-                }).catch(err => {
-                    next({etat:false,err:err});
-                })
-            }); */
         });
     }
 
@@ -210,10 +160,11 @@ exports.userQueries = class {
                                    if(bigdata.length === 0){
                                        next({etat:true, time:data.date_fin_game,level:donnees[0]})
                                    }else{
-                                       next({etat:true, time:data.date_fin_game,level:donnees[bigdata[bigdata.length-1].level]})
+                                       const level = bigdata[bigdata.length-1].is_validate === true ? bigdata[bigdata.length-1].level : bigdata[bigdata.length-1].level-1;
+                                       next({etat:true, time:data.date_fin_game,level:donnees[level]})  
                                    }
                                });
-                           })
+                           });
                        })
                    })
                 }).catch(err => {
@@ -272,6 +223,50 @@ exports.userQueries = class {
                 });
             });
         })
+    }
+
+    static endGame(data){
+        return new Promise(async next => {
+            await mongoose.collection.db.collection('memory_resultatparlevel',(err,collection)=>{
+                collection.find({user_id:data.user_id,game_id:data.game_id}).toArray((err,resultats)=>{
+                    let nombreTentatives = 0;
+                    resultats.forEach(el => {
+                        nombreTentatives += el.nbre_tentative;
+                    });
+                    let levelMax = resultats[resultats.length-1].is_validate === true ? resultats[resultats.length-1].level : resultats[resultats.length-2].level;
+                    let pourcentage = 0;
+                    let a_valide = false;
+                    mongoose.collection.db.collection('memory_levelgame',(err,collection)=>{
+                        collection.find().toArray((err,donnees)=>{
+                            pourcentage = donnees.length * 100 / levelMax;
+                        })
+                    });
+                    mongoose.collection.db.collection('memory_games',(err,collection)=>{
+                        collection.findOne({game_id:data.game_id}).then(res => {
+                            a_validee = levelMax > res.validation ? true : false;
+                        });
+                    });
+                    mongoose.collection.db.collection('memory_resultatfinalgame',(err,collection)=>{
+                        collection.insertOne({
+                            id: data.id+1,
+                            user_id: data.user_id,
+                            game_id: data.game_id,
+                            max_level: levelMax,
+                            nbre_tentative_final: nombreTentatives,
+                            a_valide : a_valide,
+                            pourcentage: pourcentage,
+                            date_add: new Date(),
+                            date_upd: new Date(),
+                            status: true
+                        }).then( ok => {
+                            next({etat:true, resultat: ok});
+                        }).catch(err => {
+                            next({etat:false,err:err});
+                        });
+                    });
+                });
+            });
+        });
     }
 
 
