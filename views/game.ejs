@@ -57,6 +57,12 @@
     <div id="ttr"></div>
     <div class="cont">
     </div>
+
+    <div id="resultat">
+        <h1>Resultat</h1>
+        <p class="res"></p>
+        <p><span> Pourcentage : </span><span class="percent"></span></p>
+    </div>
     <button class="validate" style="display: none"></button>
     <span class="go">GO</span>
     <script src="/socket.io/socket.io.js"></script>
@@ -240,17 +246,23 @@
                             min--
                         } 
                     }else{
-                        if( sec === O){
+                        if( sec === 0){
                             clearInterval(decompt);
                             endGame = true;
-                            $('#preloader').fadeIn(300);
+                            alert('end');
+                            $('#preloader h2').text("");
+                            $('#preloader p').text("patientez pour votre résultat");
+                            $('#preloader').fadeIn(400);
+                            $('#game').css('background','black !important');
+                            $('#game .cont').css('display','none');
+                            $('.progressbar').css('display','none');
+                            $('.header').css('display','none');
                             socket.emit('endGame')
                         }
                     }
                     Time.textContent = hour+":"+min+":"+sec;
                 },1000);
         };
-
         document.querySelector('.validate').addEventListener('click',()=>{
             if(!endGame){
                 console.log('je clique');
@@ -383,7 +395,18 @@
 
         socket.on('endGame',(data)=>{
             $('#preloader').fadeOut(300);
-            alert(data.a_valide);
+            $('#resultat').fadeIn(300);
+            $('.ombre').fadeIn(300);
+            if(data.ops[0].a_valide){
+                $('#resultat p.res').text('success')
+                $('#resultat').addClass('success');
+                $('#resultat')
+            }else{
+                $('#resultat p.res').text('Fail')
+                $('#resultat').addClass('fail');
+            }
+            $('#resultat span.percent').text(data.ops[0].pourcentage+'%');
+
         })
 
     </script>

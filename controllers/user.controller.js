@@ -127,6 +127,20 @@ exports.userQueries = class {
     static setDateFin(data) {
         console.log(data);
         return new Promise(async next => {
+            await mongoose.connection.db.collection('memory_resultatfinalgame',(err,collection)=>{
+                collection.insertOne({
+                  id:data.id+1,
+                  user_id:data.user_id,
+                  game_id: data.game_id,
+                  max_level: 1,
+                  nbre_tentative_final: 0,
+                  a_valide: false,
+                  pourcentage: 0,
+                  date_add = new Date(),
+                  date_upd =  new Date(),
+                  status = true
+                }).then()
+            });
             await   mongoose.connection.db.collection('memory_games',(err,collection)=>{
                 collection.findOne({id:data.game_id}).then(Game => {
                     mongoose.connection.db.collection('memory_timegame',(err,collection)=>{
@@ -227,44 +241,39 @@ exports.userQueries = class {
 
     static endGame(data){
         return new Promise(async next => {
-            await mongoose.collection.db.collection('memory_resultatparlevel',(err,collection)=>{
-                collection.find({user_id:data.user_id,game_id:data.game_id}).toArray((err,resultats)=>{
+            data.id += 1;
+            await mongoose.connection.db.collection('memory_resultatparlevel', (err,collection)=>{
+                collection.find({user_id:data.user_id,game_id:data.game_id}).toArray(async (err,resultats)=>{
                     let nombreTentatives = 0;
                     resultats.forEach(el => {
                         nombreTentatives += el.nbre_tentative;
                     });
-                    let levelMax = resultats[resultats.length-1].is_validate === true ? resultats[resultats.length-1].level : resultats[resultats.length-2].level;
-                    let pourcentage = 0;
-                    let a_valide = false;
-                    mongoose.collection.db.collection('memory_levelgame',(err,collection)=>{
-                        collection.find().toArray((err,donnees)=>{
-                            pourcentage = donnees.length * 100 / levelMax;
-                        })
-                    });
-                    mongoose.collection.db.collection('memory_games',(err,collection)=>{
-                        collection.findOne({game_id:data.game_id}).then(res => {
-                            a_validee = levelMax > res.validation ? true : false;
-                        });
-                    });
-                    mongoose.collection.db.collection('memory_resultatfinalgame',(err,collection)=>{
-                        collection.insertOne({
-                            id: data.id+1,
-                            user_id: data.user_id,
-                            game_id: data.game_id,
-                            max_level: levelMax,
-                            nbre_tentative_final: nombreTentatives,
-                            a_valide : a_valide,
-                            pourcentage: pourcentage,
-                            date_add: new Date(),
-                            date_upd: new Date(),
-                            status: true
-                        }).then( ok => {
-                            next({etat:true, resultat: ok});
-                        }).catch(err => {
-                            next({etat:false,err:err});
+                  await mongoose.connection.db.collection('memory_games',(err,collection)=>{
+                        collection.findOne({id:data.game_id}).then(async res => {
+                            await mongoose.connection.db.collection('memory_levelgame',(err,collection)=>{
+                                collection.find().toArray(async (err,donnees)=>{
+                                    data.max_level = resultats[resultats.length-1].is_validate === true ? resultats[resultats.length-1].level : resultats[resultats.length-2].level;
+                                    data.nbre_tentative_final = nombreTentatives;
+                                    data.a_valide = data.max_level >= res.validation ? true : false;
+                                    data.pourcentage = data.max_level * 100 / donnees.length;
+                                    data.date_add = new Date();
+                                    data.date_upd =  new Date();
+                                    data.status = true;
+                                    await  mongoose.connection.db.collection('memory_resultatfinalgame',(err,collection)=>{
+                                        collection.insert(data).then( donne => {
+                                            console.log(donne);
+                                            next({etat:true, output: donne});
+                                        }).catch(err => {
+                                            next({etat:false,err:err});
+                                        });
+                                    });
+                                });
+                            })
                         });
                     });
                 });
+
+
             });
         });
     }

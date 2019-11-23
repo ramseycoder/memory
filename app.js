@@ -90,6 +90,7 @@ memory.on('connection',async (socket)=>{
             user_id: socket.handshake.session.game.id,
             game_id: socket.handshake.session.game.game_id,
         };
+        data.id = await userQueries.getModelsLength('memory_resultatfinalgame');
         const resu = await userQueries.setDateFin(data);
         const res = await gameQueries.getLevel({level:0,game:socket.handshake.session.game.game_id});
         console.log(res.duree);
@@ -151,9 +152,9 @@ memory.on('connection',async (socket)=>{
          }
          console.log(data);
          const end = await userQueries.endGame(data);
-         if(end.resultat != null){
-             console.log(end.resultat);
-             socket.emit('endGame',end.resultat);
+         if(end.output != null){
+             //console.log(end.resultat);
+             socket.emit('endGame',end.output);
          }
     });
 });
